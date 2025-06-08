@@ -592,8 +592,9 @@
             showLoading(true);
 
             try {
-                // Check for stored tokens from webhook
-                const response = await fetch('https://salla-webhook-server.onrender.com/api/dev/tokens');
+                // Check for stored tokens from webhook (use current server URL)
+                const baseUrl = window.location.origin;
+                const response = await fetch(`${baseUrl}/api/dev/tokens`);
                 const data = await response.json();
 
                 if (response.ok && data.tokens && data.tokens.length > 0) {
@@ -627,7 +628,9 @@
             showLoading(true);
 
             try {
-                const response = await fetch('https://salla-webhook-server.onrender.com/health');
+                // Use current server URL for health check
+                const baseUrl = window.location.origin;
+                const response = await fetch(`${baseUrl}/health`);
                 const data = await response.json();
 
                 if (response.ok) {
@@ -741,9 +744,10 @@ Connected: ${new Date().toLocaleString()}`;
         }
 
         function updatePowerQueryCode(merchantId) {
+            const baseUrl = window.location.origin;
             const code = `let
     Source = Web.Contents(
-        "https://salla-webhook-server.onrender.com/api/excel/token",
+        "${baseUrl}/api/excel/token",
         [
             Headers = [#"Content-Type" = "application/json"],
             Content = Text.ToBinary("{\\"merchantId\\":\\"${merchantId}\\",\\"clientSecret\\":\\"74c4469b3ab16c51659a2c3b1405166f\\"}")
@@ -752,7 +756,7 @@ Connected: ${new Date().toLocaleString()}`;
     JsonData = Json.Document(Source)
 in
     JsonData`;
-            
+
             document.getElementById('powerquery-code').textContent = code;
         }
 
@@ -783,6 +787,7 @@ in
                 return;
             }
 
+            const baseUrl = window.location.origin;
             const tokenQuery = `// Salla Token Query - Get Access Token
 // Import this file into Excel Power Query
 // Store: ${currentMerchantId}
@@ -792,7 +797,7 @@ let
     // Configuration (Your Store)
     MerchantId = "${currentMerchantId}",
     ClientSecret = "74c4469b3ab16c51659a2c3b1405166f",
-    WebhookUrl = "https://salla-webhook-server.onrender.com/api/excel/token",
+    WebhookUrl = "${baseUrl}/api/excel/token",
 
     // Request body
     RequestBody = [
@@ -847,6 +852,7 @@ in
 
         function downloadOrdersQuery() {
             const merchantId = document.getElementById('merchant-id').value || 'YOUR_MERCHANT_ID';
+            const baseUrl = window.location.origin;
 
             const ordersQuery = `// Salla Orders Query - Get Orders Data
 // Import this file into Excel Power Query
@@ -863,7 +869,7 @@ let
     ],
 
     TokenResponse = Web.Contents(
-        "https://salla-webhook-server.onrender.com/api/excel/token",
+        "${baseUrl}/api/excel/token",
         [
             Headers = [#"Content-Type" = "application/json"],
             Content = Json.FromValue(TokenRequest)
@@ -911,6 +917,7 @@ in
 
         function downloadProductsQuery() {
             const merchantId = document.getElementById('merchant-id').value || 'YOUR_MERCHANT_ID';
+            const baseUrl = window.location.origin;
 
             const productsQuery = `// Salla Products Query - Get Products Data
 // Import this file into Excel Power Query
@@ -927,7 +934,7 @@ let
     ],
 
     TokenResponse = Web.Contents(
-        "https://salla-webhook-server.onrender.com/api/excel/token",
+        "${baseUrl}/api/excel/token",
         [
             Headers = [#"Content-Type" = "application/json"],
             Content = Json.FromValue(TokenRequest)
@@ -975,6 +982,7 @@ in
 
         function downloadCustomersQuery() {
             const merchantId = document.getElementById('merchant-id').value || 'YOUR_MERCHANT_ID';
+            const baseUrl = window.location.origin;
 
             const customersQuery = `// Salla Customers Query - Get Customers Data
 // Import this file into Excel Power Query
@@ -991,7 +999,7 @@ let
     ],
 
     TokenResponse = Web.Contents(
-        "https://salla-webhook-server.onrender.com/api/excel/token",
+        "${baseUrl}/api/excel/token",
         [
             Headers = [#"Content-Type" = "application/json"],
             Content = Json.FromValue(TokenRequest)
@@ -1052,7 +1060,8 @@ in
         }
 
         function viewLogs() {
-            window.open('https://salla-webhook-server.onrender.com/api/dev/logs', '_blank');
+            const baseUrl = window.location.origin;
+            window.open(`${baseUrl}/api/dev/logs`, '_blank');
         }
 
         function openSallaPortal() {
@@ -1060,7 +1069,8 @@ in
         }
 
         function checkWebhook() {
-            window.open('https://salla-webhook-server.onrender.com/api/dev/status', '_blank');
+            const baseUrl = window.location.origin;
+            window.open(`${baseUrl}/api/dev/status`, '_blank');
         }
 
         function openExcel() {
