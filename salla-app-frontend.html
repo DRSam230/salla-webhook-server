@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Salla Excel Data Connector - Token Manager</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            max-width: 1200px;
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            min-height: 600px;
+        }
+
+        .left-panel {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        .right-panel {
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .logo {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+
+        .left-panel h1 {
+            font-size: 32px;
+            margin-bottom: 20px;
+            font-weight: 300;
+        }
+
+        .left-panel p {
+            font-size: 18px;
+            opacity: 0.9;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+
+        .feature-list {
+            list-style: none;
+            text-align: left;
+        }
+
+        .feature-list li {
+            padding: 10px 0;
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .feature-list li::before {
+            content: "✅ ";
+            margin-right: 10px;
+        }
+
+        .right-panel h2 {
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 28px;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 15px;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+
+        .btn-info {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .btn-info:hover {
+            background: #138496;
+            transform: translateY(-2px);
+        }
+
+        .status-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 4px solid #667eea;
+        }
+
+        .status-success {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+
+        .status-error {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+
+        .status-warning {
+            border-left-color: #ffc107;
+            background: #fff3cd;
+        }
+
+        .token-display {
+            background: #1e1e1e;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            word-break: break-all;
+            margin: 10px 0;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .copy-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+
+        .copy-btn:hover {
+            background: #5a6268;
+        }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e1e5e9;
+        }
+
+        .tab {
+            padding: 15px 25px;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            color: #666;
+        }
+
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .quick-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .help-text {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+            font-style: italic;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+                max-width: 500px;
+            }
+            
+            .left-panel {
+                padding: 30px 20px;
+            }
+            
+            .right-panel {
+                padding: 30px 20px;
+            }
+            
+            .quick-actions {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Left Panel -->
+        <div class="left-panel">
+            <div class="logo">🛍️</div>
+            <h1>Salla Excel Data Connector</h1>
+            <p>Connect your Salla store to Excel with real-time data synchronization. Get access tokens automatically and import your e-commerce data seamlessly.</p>
+            
+            <ul class="feature-list">
+                <li>Automatic token management</li>
+                <li>Real-time data synchronization</li>
+                <li>Excel Power Query integration</li>
+                <li>Secure webhook connectivity</li>
+                <li>Professional data handling</li>
+            </ul>
+        </div>
+
+        <!-- Right Panel -->
+        <div class="right-panel">
+            <h2>🔐 Token Manager</h2>
+
+            <!-- Tabs -->
+            <div class="tabs">
+                <div class="tab active" onclick="switchTab('connect-store')">Connect Store</div>
+                <div class="tab" onclick="switchTab('download-files')">Download Files</div>
+                <div class="tab" onclick="switchTab('help-guide')">Help Guide</div>
+            </div>
+
+            <!-- Connect Store Tab -->
+            <div id="connect-store" class="tab-content active">
+                <div class="status-card status-info">
+                    <h4>🔗 Connect Your Salla Store</h4>
+                    <p>Click the button below to install the "S.M.D" app in your Salla store. The app uses <strong>Easy Mode OAuth</strong> - no callback URLs needed!</p>
+                </div>
+
+                <a href="https://s.salla.sa/apps/install/930173362" target="_blank" class="btn btn-primary" onclick="trackInstallation()">
+                    🚀 Install S.M.D App in My Store
+                </a>
+
+                <div class="status-card">
+                    <h4>📋 How Salla Easy Mode Works:</h4>
+                    <ol style="margin-left: 20px; margin-top: 10px;">
+                        <li><strong>Install App:</strong> Click above to install in your Salla store</li>
+                        <li><strong>Authorize:</strong> Login and authorize the app permissions</li>
+                        <li><strong>Automatic Webhook:</strong> Salla sends token to: <code>https://salla-webhook-server.onrender.com/salla/webhook</code></li>
+                        <li><strong>Return Here:</strong> Check connection status and download files</li>
+                    </ol>
+                </div>
+
+                <div class="status-card status-warning">
+                    <h4>⚠️ Important: No Callback URL Required</h4>
+                    <p>This app uses <strong>Salla's Easy Mode OAuth</strong>. When you install the app, Salla automatically sends your access token to our webhook server. No redirect URLs or manual token copying needed!</p>
+                    <p><strong>Webhook URL:</strong> <code>https://salla-webhook-server.onrender.com/salla/webhook</code></p>
+                </div>
+
+                <div class="quick-actions">
+                    <button class="btn btn-info" onclick="checkConnection()">
+                        🔍 Check Connection Status
+                    </button>
+                    <button class="btn btn-secondary" onclick="viewLogs()">
+                        📋 View Webhook Logs
+                    </button>
+                </div>
+
+                <div id="connection-status" class="status-card" style="display: none;">
+                    <h4 id="connection-title">Connection Status</h4>
+                    <p id="connection-message">Checking...</p>
+                    <div id="store-info" style="display: none;">
+                        <div class="token-display" id="store-details"></div>
+                    </div>
+                </div>
+
+                <div id="loading" class="loading">
+                    <div class="spinner"></div>
+                    <p>Checking connection status...</p>
+                </div>
+            </div>
+
+            <!-- Download Files Tab -->
+            <div id="download-files" class="tab-content">
+                <div class="status-card status-warning" id="not-connected" style="display: block;">
+                    <h4>⚠️ Store Not Connected</h4>
+                    <p>Please connect your Salla store first using the "Connect Store" tab above.</p>
+                </div>
+
+                <div id="connected-content" style="display: none;">
+                    <div class="status-card status-success">
+                        <h4>✅ Store Connected Successfully!</h4>
+                        <p>Your store is connected. Download ready-to-use Power Query files below:</p>
+                        <div id="connected-store-info" class="token-display"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>📁 Download Power Query Files (Ready with Your Token)</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 15px 0;">
+                            <button class="btn btn-primary" onclick="downloadTokenQuery()">
+                                📥 Download Token Query
+                            </button>
+                            <button class="btn btn-secondary" onclick="downloadOrdersQuery()">
+                                📦 Download Orders Query
+                            </button>
+                            <button class="btn btn-info" onclick="downloadProductsQuery()">
+                                🛍️ Download Products Query
+                            </button>
+                            <button class="btn btn-secondary" onclick="downloadCustomersQuery()">
+                                👥 Download Customers Query
+                            </button>
+                        </div>
+                        <button class="btn btn-primary" style="width: 100%; margin-top: 10px;" onclick="downloadAllQueries()">
+                            📦 Download All Query Files
+                        </button>
+                    </div>
+
+                    <div class="status-card">
+                        <h4>📋 How to Use Downloaded Files:</h4>
+                        <ol style="margin-left: 20px; margin-top: 10px;">
+                            <li>Download the .pq files using buttons above</li>
+                            <li>Open Excel → Data → Get Data → From File → From Text/CSV</li>
+                            <li>Select the downloaded .pq file</li>
+                            <li>Excel will load the query automatically with your data</li>
+                            <li>Or copy-paste code into Blank Query → Advanced Editor</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <div class="quick-actions">
+                    <button class="btn btn-info" onclick="refreshConnection()">
+                        🔄 Refresh Connection
+                    </button>
+                    <button class="btn btn-secondary" onclick="viewLogs()">
+                        📋 View Logs
+                    </button>
+                </div>
+            </div>
+
+            <!-- Help Guide Tab -->
+            <div id="help-guide" class="tab-content">
+                <div class="status-card">
+                    <h4>🚀 Quick Start Guide</h4>
+                    <ol style="margin-left: 20px; margin-top: 10px;">
+                        <li><strong>Install App:</strong> Click "Install S.M.D App" to install in your Salla store</li>
+                        <li><strong>Authorize:</strong> Login to Salla and authorize the app permissions</li>
+                        <li><strong>Automatic Token:</strong> Salla sends your token to our webhook server automatically</li>
+                        <li><strong>Download Files:</strong> Return here to get Power Query files with your real token</li>
+                        <li><strong>Import to Excel:</strong> Use downloaded files directly in Excel Power Query</li>
+                    </ol>
+                </div>
+
+                <div class="status-card status-info">
+                    <h4>🔧 Salla Easy Mode OAuth Explained</h4>
+                    <p><strong>No Callback URLs Required!</strong> This app uses Salla's Easy Mode OAuth flow:</p>
+                    <ul style="margin-left: 20px; margin-top: 10px;">
+                        <li><strong>Webhook-Based:</strong> Tokens are delivered via webhooks, not redirects</li>
+                        <li><strong>Automatic:</strong> No manual token copying or configuration</li>
+                        <li><strong>Secure:</strong> Tokens go directly to our secure webhook server</li>
+                        <li><strong>Simple:</strong> Just install the app and tokens appear automatically</li>
+                    </ul>
+                    <p><strong>Webhook Endpoint:</strong> <code>https://salla-webhook-server.onrender.com/salla/webhook</code></p>
+                </div>
+
+                <div class="status-card status-info">
+                    <h4>📊 Excel Integration Steps</h4>
+                    <ol style="margin-left: 20px; margin-top: 10px;">
+                        <li>Download .pq files from "Download Files" tab</li>
+                        <li>Open Excel → Data → Get Data → From File → From Text/CSV</li>
+                        <li>Select downloaded .pq file</li>
+                        <li>Excel automatically loads your Salla data</li>
+                        <li>Set up auto-refresh for real-time updates</li>
+                    </ol>
+                </div>
+
+                <div class="status-card status-warning">
+                    <h4>🔧 Troubleshooting</h4>
+                    <ul style="margin-left: 20px; margin-top: 10px;">
+                        <li><strong>Connection Failed:</strong> Make sure you've authorized the app in your Salla store</li>
+                        <li><strong>No Data:</strong> Check webhook logs for any errors</li>
+                        <li><strong>Excel Issues:</strong> Ensure you have Excel 2016 or newer</li>
+                        <li><strong>Token Expired:</strong> Reconnect your store to refresh the token</li>
+                    </ul>
+                </div>
+
+                <div class="form-group">
+                    <label>🔗 Useful Links</label>
+                    <div class="quick-actions">
+                        <button class="btn btn-info" onclick="openSallaPortal()">
+                            ⚙️ Salla Partners Portal
+                        </button>
+                        <button class="btn btn-secondary" onclick="viewLogs()">
+                            📋 Webhook Logs
+                        </button>
+                        <button class="btn btn-info" onclick="checkWebhook()">
+                            🧪 Test Webhook
+                        </button>
+                        <button class="btn btn-secondary" onclick="openExcel()">
+                            📊 Open Excel
+                        </button>
+                    </div>
+                </div>
+
+                <div class="status-card">
+                    <h4>📞 Support Information</h4>
+                    <p><strong>Webhook Server:</strong> https://salla-webhook-server.onrender.com</p>
+                    <p><strong>Health Check:</strong> https://salla-webhook-server.onrender.com/health</p>
+                    <p><strong>App ID:</strong> 930173362</p>
+                    <p><strong>Client ID:</strong> f6b4c9db-2968-4612-bf17-c34dc7aab749</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentToken = null;
+        let currentMerchantId = null;
+        let storeConnected = false;
+
+        function switchTab(tabName) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+
+            // Remove active class from all tabs
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // Show selected tab content
+            document.getElementById(tabName).classList.add('active');
+
+            // Add active class to clicked tab
+            event.target.classList.add('active');
+
+            // Check connection status when switching to download files tab
+            if (tabName === 'download-files') {
+                checkConnection();
+            }
+        }
+
+        function trackInstallation() {
+            // Track that user clicked install
+            localStorage.setItem('salla_install_clicked', Date.now());
+
+            // Show message
+            setTimeout(() => {
+                alert('🔄 After authorizing the app in Salla, return here and click "Check Connection Status" to verify the connection.');
+            }, 1000);
+        }
+
+        async function getAccessToken() {
+            const merchantId = document.getElementById('merchant-id').value;
+            
+            if (!merchantId) {
+                showStatus('error', 'Please enter your Merchant ID');
+                return;
+            }
+
+            showLoading(true);
+            hideStatus();
+
+            try {
+                const response = await fetch('https://salla-webhook-server.onrender.com/api/excel/token', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        merchantId: merchantId,
+                        clientSecret: '74c4469b3ab16c51659a2c3b1405166f'
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.access_token) {
+                    currentToken = data.access_token;
+                    showStatus('success', 'Access token retrieved successfully!', data);
+                    updatePowerQueryCode(merchantId);
+                } else {
+                    showStatus('error', data.error || 'Failed to get access token. Make sure you have installed the Salla app.');
+                }
+            } catch (error) {
+                showStatus('error', 'Connection failed. Please check your internet connection and try again.');
+                console.error('Error:', error);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function checkConnection() {
+            showLoading(true);
+
+            try {
+                // Check for stored tokens from webhook
+                const response = await fetch('https://salla-webhook-server.onrender.com/api/dev/tokens');
+                const data = await response.json();
+
+                if (response.ok && data.tokens && data.tokens.length > 0) {
+                    // Found stored tokens - user has connected their store
+                    const latestToken = data.tokens[data.tokens.length - 1];
+                    currentToken = latestToken.access_token;
+                    currentMerchantId = latestToken.merchant_id;
+                    storeConnected = true;
+
+                    showConnectionStatus('success', 'Store connected successfully!', latestToken);
+                    updateDownloadFilesTab(true, latestToken);
+                } else {
+                    // No tokens found - user hasn't connected store yet
+                    storeConnected = false;
+                    showConnectionStatus('warning', 'No store connection found. Please connect your Salla store first.');
+                    updateDownloadFilesTab(false);
+                }
+            } catch (error) {
+                showConnectionStatus('error', 'Cannot connect to webhook server. Please check your internet connection.');
+                console.error('Connection error:', error);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function refreshConnection() {
+            await checkConnection();
+        }
+
+        async function testConnection() {
+            showLoading(true);
+
+            try {
+                const response = await fetch('https://salla-webhook-server.onrender.com/health');
+                const data = await response.json();
+
+                if (response.ok) {
+                    showConnectionStatus('success', 'Webhook server is online and healthy!');
+                } else {
+                    showConnectionStatus('error', 'Webhook server is not responding properly');
+                }
+            } catch (error) {
+                showConnectionStatus('error', 'Cannot connect to webhook server');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+        }
+
+        function showStatus(type, message, data = null) {
+            const statusDiv = document.getElementById('status');
+            const titleDiv = document.getElementById('status-title');
+            const messageDiv = document.getElementById('status-message');
+            const tokenContainer = document.getElementById('token-container');
+            const tokenDisplay = document.getElementById('token-display');
+
+            statusDiv.className = `status-card status-${type}`;
+            statusDiv.style.display = 'block';
+            
+            titleDiv.textContent = type === 'success' ? '✅ Success' : type === 'error' ? '❌ Error' : '⚠️ Warning';
+            messageDiv.textContent = message;
+
+            if (data && data.access_token) {
+                tokenContainer.style.display = 'block';
+                tokenDisplay.textContent = JSON.stringify(data, null, 2);
+            } else {
+                tokenContainer.style.display = 'none';
+            }
+        }
+
+        function hideStatus() {
+            const statusElement = document.getElementById('status');
+            if (statusElement) {
+                statusElement.style.display = 'none';
+            }
+        }
+
+        function showConnectionStatus(type, message, data = null) {
+            const statusDiv = document.getElementById('connection-status');
+            const titleDiv = document.getElementById('connection-title');
+            const messageDiv = document.getElementById('connection-message');
+            const storeInfo = document.getElementById('store-info');
+            const storeDetails = document.getElementById('store-details');
+
+            if (statusDiv && titleDiv && messageDiv) {
+                statusDiv.className = `status-card status-${type}`;
+                statusDiv.style.display = 'block';
+
+                titleDiv.textContent = type === 'success' ? '✅ Connection Status' : type === 'error' ? '❌ Connection Error' : '⚠️ Connection Warning';
+                messageDiv.textContent = message;
+
+                if (data && storeInfo && storeDetails) {
+                    storeInfo.style.display = 'block';
+                    storeDetails.textContent = JSON.stringify({
+                        merchant_id: data.merchant_id,
+                        store_name: data.store_name || 'N/A',
+                        access_token: data.access_token ? data.access_token.substring(0, 20) + '...' : 'N/A',
+                        expires_at: data.expires_at || 'N/A',
+                        connected_at: new Date().toLocaleString()
+                    }, null, 2);
+                } else if (storeInfo) {
+                    storeInfo.style.display = 'none';
+                }
+            }
+        }
+
+        function updateDownloadFilesTab(connected, tokenData = null) {
+            const notConnected = document.getElementById('not-connected');
+            const connectedContent = document.getElementById('connected-content');
+            const connectedStoreInfo = document.getElementById('connected-store-info');
+
+            if (notConnected && connectedContent) {
+                if (connected) {
+                    notConnected.style.display = 'none';
+                    connectedContent.style.display = 'block';
+
+                    if (tokenData && connectedStoreInfo) {
+                        connectedStoreInfo.textContent = `Store: ${tokenData.store_name || tokenData.merchant_id}
+Token: ${tokenData.access_token ? tokenData.access_token.substring(0, 30) + '...' : 'Available'}
+Connected: ${new Date().toLocaleString()}`;
+                    }
+                } else {
+                    notConnected.style.display = 'block';
+                    connectedContent.style.display = 'none';
+                }
+            }
+        }
+
+        function copyToken() {
+            if (currentToken) {
+                navigator.clipboard.writeText(currentToken).then(() => {
+                    alert('✅ Access token copied to clipboard!');
+                });
+            }
+        }
+
+        function copyPowerQuery() {
+            const code = document.getElementById('powerquery-code').textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                alert('✅ Power Query code copied to clipboard!');
+            });
+        }
+
+        function updatePowerQueryCode(merchantId) {
+            const code = `let
+    Source = Web.Contents(
+        "https://salla-webhook-server.onrender.com/api/excel/token",
+        [
+            Headers = [#"Content-Type" = "application/json"],
+            Content = Text.ToBinary("{\\"merchantId\\":\\"${merchantId}\\",\\"clientSecret\\":\\"74c4469b3ab16c51659a2c3b1405166f\\"}")
+        ]
+    ),
+    JsonData = Json.Document(Source)
+in
+    JsonData`;
+            
+            document.getElementById('powerquery-code').textContent = code;
+        }
+
+        function generatePowerQuery() {
+            const merchantId = document.getElementById('merchant-id').value;
+            if (merchantId) {
+                updatePowerQueryCode(merchantId);
+                alert('✅ Power Query code updated with your Merchant ID!');
+            } else {
+                alert('⚠️ Please enter your Merchant ID first');
+            }
+        }
+
+        function generateAllQueries() {
+            const merchantId = document.getElementById('merchant-id').value;
+            if (!merchantId) {
+                alert('⚠️ Please enter your Merchant ID first');
+                return;
+            }
+
+            updatePowerQueryCode(merchantId);
+            alert('✅ All Power Query files are now ready with your Merchant ID! Use the download buttons above.');
+        }
+
+        function downloadTokenQuery() {
+            if (!storeConnected || !currentMerchantId) {
+                alert('⚠️ Please connect your Salla store first!');
+                return;
+            }
+
+            const tokenQuery = `// Salla Token Query - Get Access Token
+// Import this file into Excel Power Query
+// Store: ${currentMerchantId}
+// Generated: ${new Date().toLocaleString()}
+
+let
+    // Configuration (Your Store)
+    MerchantId = "${currentMerchantId}",
+    ClientSecret = "74c4469b3ab16c51659a2c3b1405166f",
+    WebhookUrl = "https://salla-webhook-server.onrender.com/api/excel/token",
+
+    // Request body
+    RequestBody = [
+        merchantId = MerchantId,
+        clientSecret = ClientSecret
+    ],
+
+    // Make API call
+    Source = Web.Contents(
+        WebhookUrl,
+        [
+            Headers = [#"Content-Type" = "application/json"],
+            Content = Json.FromValue(RequestBody)
+        ]
+    ),
+
+    // Parse response
+    JsonData = Json.Document(Source),
+    AccessToken = JsonData[access_token],
+
+    // Create result table
+    Result = #table(
+        {"Field", "Value"},
+        {
+            {"Access Token", AccessToken},
+            {"Merchant ID", MerchantId},
+            {"Retrieved At", DateTime.LocalNow()},
+            {"Expires In", JsonData[expires_in]},
+            {"Token Type", JsonData[token_type]},
+            {"Store Connected", "Yes"}
+        }
+    )
+in
+    Result`;
+
+            downloadFile(tokenQuery, `Salla-Token-${currentMerchantId}.pq`, 'Power Query');
+        }
+
+        function downloadAllQueries() {
+            if (!storeConnected || !currentMerchantId) {
+                alert('⚠️ Please connect your Salla store first!');
+                return;
+            }
+
+            downloadTokenQuery();
+            setTimeout(() => downloadOrdersQuery(), 500);
+            setTimeout(() => downloadProductsQuery(), 1000);
+            setTimeout(() => downloadCustomersQuery(), 1500);
+
+            alert('📦 All Power Query files are being downloaded with your store credentials!');
+        }
+
+        function downloadOrdersQuery() {
+            const merchantId = document.getElementById('merchant-id').value || 'YOUR_MERCHANT_ID';
+
+            const ordersQuery = `// Salla Orders Query - Get Orders Data
+// Import this file into Excel Power Query
+
+let
+    // Configuration
+    MerchantId = "${merchantId}",
+    ClientSecret = "74c4469b3ab16c51659a2c3b1405166f",
+
+    // Step 1: Get Access Token
+    TokenRequest = [
+        merchantId = MerchantId,
+        clientSecret = ClientSecret
+    ],
+
+    TokenResponse = Web.Contents(
+        "https://salla-webhook-server.onrender.com/api/excel/token",
+        [
+            Headers = [#"Content-Type" = "application/json"],
+            Content = Json.FromValue(TokenRequest)
+        ]
+    ),
+
+    TokenData = Json.Document(TokenResponse),
+    AccessToken = TokenData[access_token],
+
+    // Step 2: Get Orders Data
+    OrdersResponse = Web.Contents(
+        "https://api.salla.dev/admin/v2/orders?per_page=100",
+        [
+            Headers = [
+                Authorization = "Bearer " & AccessToken,
+                Accept = "application/json"
+            ]
+        ]
+    ),
+
+    OrdersJson = Json.Document(OrdersResponse),
+    OrdersList = OrdersJson[data],
+
+    // Step 3: Convert to Table
+    OrdersTable = Table.FromList(OrdersList, Splitter.SplitByNothing(), null, null, ExtraValues.Error),
+
+    // Step 4: Expand Orders Data
+    ExpandedOrders = Table.ExpandRecordColumn(
+        OrdersTable,
+        "Column1",
+        {"id", "reference_id", "status", "date", "currency", "amount", "customer", "items_count"},
+        {"Order_ID", "Reference", "Status", "Date", "Currency", "Amount", "Customer", "Items_Count"}
+    ),
+
+    // Step 5: Add metadata
+    FinalTable = Table.AddColumn(
+        Table.AddColumn(ExpandedOrders, "DataSource", each "Salla API"),
+        "RetrievedAt", each DateTime.LocalNow()
+    )
+in
+    FinalTable`;
+
+            downloadFile(ordersQuery, 'Salla-Orders-Query.pq', 'Power Query');
+        }
+
+        function downloadProductsQuery() {
+            const merchantId = document.getElementById('merchant-id').value || 'YOUR_MERCHANT_ID';
+
+            const productsQuery = `// Salla Products Query - Get Products Data
+// Import this file into Excel Power Query
+
+let
+    // Configuration
+    MerchantId = "${merchantId}",
+    ClientSecret = "74c4469b3ab16c51659a2c3b1405166f",
+
+    // Step 1: Get Access Token
+    TokenRequest = [
+        merchantId = MerchantId,
+        clientSecret = ClientSecret
+    ],
+
+    TokenResponse = Web.Contents(
+        "https://salla-webhook-server.onrender.com/api/excel/token",
+        [
+            Headers = [#"Content-Type" = "application/json"],
+            Content = Json.FromValue(TokenRequest)
+        ]
+    ),
+
+    TokenData = Json.Document(TokenResponse),
+    AccessToken = TokenData[access_token],
+
+    // Step 2: Get Products Data
+    ProductsResponse = Web.Contents(
+        "https://api.salla.dev/admin/v2/products?per_page=100",
+        [
+            Headers = [
+                Authorization = "Bearer " & AccessToken,
+                Accept = "application/json"
+            ]
+        ]
+    ),
+
+    ProductsJson = Json.Document(ProductsResponse),
+    ProductsList = ProductsJson[data],
+
+    // Step 3: Convert to Table
+    ProductsTable = Table.FromList(ProductsList, Splitter.SplitByNothing(), null, null, ExtraValues.Error),
+
+    // Step 4: Expand Products Data
+    ExpandedProducts = Table.ExpandRecordColumn(
+        ProductsTable,
+        "Column1",
+        {"id", "name", "description", "price", "sale_price", "sku", "status", "quantity"},
+        {"Product_ID", "Name", "Description", "Price", "Sale_Price", "SKU", "Status", "Quantity"}
+    ),
+
+    // Step 5: Add metadata
+    FinalTable = Table.AddColumn(
+        Table.AddColumn(ExpandedProducts, "DataSource", each "Salla API"),
+        "RetrievedAt", each DateTime.LocalNow()
+    )
+in
+    FinalTable`;
+
+            downloadFile(productsQuery, 'Salla-Products-Query.pq', 'Power Query');
+        }
+
+        function downloadCustomersQuery() {
+            const merchantId = document.getElementById('merchant-id').value || 'YOUR_MERCHANT_ID';
+
+            const customersQuery = `// Salla Customers Query - Get Customers Data
+// Import this file into Excel Power Query
+
+let
+    // Configuration
+    MerchantId = "${merchantId}",
+    ClientSecret = "74c4469b3ab16c51659a2c3b1405166f",
+
+    // Step 1: Get Access Token
+    TokenRequest = [
+        merchantId = MerchantId,
+        clientSecret = ClientSecret
+    ],
+
+    TokenResponse = Web.Contents(
+        "https://salla-webhook-server.onrender.com/api/excel/token",
+        [
+            Headers = [#"Content-Type" = "application/json"],
+            Content = Json.FromValue(TokenRequest)
+        ]
+    ),
+
+    TokenData = Json.Document(TokenResponse),
+    AccessToken = TokenData[access_token],
+
+    // Step 2: Get Customers Data
+    CustomersResponse = Web.Contents(
+        "https://api.salla.dev/admin/v2/customers?per_page=100",
+        [
+            Headers = [
+                Authorization = "Bearer " & AccessToken,
+                Accept = "application/json"
+            ]
+        ]
+    ),
+
+    CustomersJson = Json.Document(CustomersResponse),
+    CustomersList = CustomersJson[data],
+
+    // Step 3: Convert to Table
+    CustomersTable = Table.FromList(CustomersList, Splitter.SplitByNothing(), null, null, ExtraValues.Error),
+
+    // Step 4: Expand Customers Data
+    ExpandedCustomers = Table.ExpandRecordColumn(
+        CustomersTable,
+        "Column1",
+        {"id", "first_name", "last_name", "email", "mobile", "city", "country", "created_at"},
+        {"Customer_ID", "First_Name", "Last_Name", "Email", "Mobile", "City", "Country", "Created_At"}
+    ),
+
+    // Step 5: Add metadata
+    FinalTable = Table.AddColumn(
+        Table.AddColumn(ExpandedCustomers, "DataSource", each "Salla API"),
+        "RetrievedAt", each DateTime.LocalNow()
+    )
+in
+    FinalTable`;
+
+            downloadFile(customersQuery, 'Salla-Customers-Query.pq', 'Power Query');
+        }
+
+        function downloadFile(content, filename, type) {
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            alert(`✅ ${type} file "${filename}" downloaded successfully!`);
+        }
+
+        function viewLogs() {
+            window.open('https://salla-webhook-server.onrender.com/api/dev/logs', '_blank');
+        }
+
+        function openSallaPortal() {
+            window.open('https://portal.salla.partners/', '_blank');
+        }
+
+        function checkWebhook() {
+            window.open('https://salla-webhook-server.onrender.com/api/dev/status', '_blank');
+        }
+
+        function openExcel() {
+            try {
+                window.open('ms-excel:', '_blank');
+            } catch (e) {
+                alert('Please open Microsoft Excel manually');
+            }
+        }
+
+        // Auto-check connection on page load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                testConnection();
+                checkConnection();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
