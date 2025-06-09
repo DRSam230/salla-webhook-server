@@ -18,6 +18,7 @@ const express = require('express');
 const crypto = require('crypto');
 const fs = require('fs').promises;
 const path = require('path');
+const https = require('https');
 
 const app = express();
 const PORT = process.env.PORT || 3002;
@@ -48,6 +49,9 @@ const SALLA_CONFIG = {
 
 // Development log storage
 const DEV_LOG = [];
+
+// In-memory token storage (for quick access)
+const STORED_TOKENS = new Map();
 
 function addDevLog(message, type = 'info', data = null) {
     const logEntry = {
@@ -380,6 +384,203 @@ app.get('/api/dev/logs', (req, res) => {
     });
 });
 
+// Real Salla API function using Node.js HTTPS
+function callSallaAPI(endpoint, accessToken) {
+    return new Promise((resolve, reject) => {
+        const options = {
+            hostname: 'api.salla.dev',
+            port: 443,
+            path: `/admin/v2/${endpoint}?per_page=50`,
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Accept': 'application/json'
+            }
+        };
+
+        const req = https.request(options, (res) => {
+            let data = '';
+
+            res.on('data', (chunk) => {
+                data += chunk;
+            });
+
+            res.on('end', () => {
+                try {
+                    const jsonData = JSON.parse(data);
+                    if (res.statusCode === 200 && jsonData.data) {
+                        resolve(jsonData.data);
+                    } else {
+                        addDevLog(`Salla API error for ${endpoint}`, 'error', {
+                            status: res.statusCode,
+                            response: jsonData
+                        });
+                        resolve([]); // Return empty array on error
+                    }
+                } catch (error) {
+                    addDevLog(`JSON parse error for ${endpoint}`, 'error', error.message);
+                    resolve([]);
+                }
+            });
+        });
+
+        req.on('error', (error) => {
+            addDevLog(`HTTPS request error for ${endpoint}`, 'error', error.message);
+            resolve([]);
+        });
+
+        req.setTimeout(10000, () => {
+            addDevLog(`Request timeout for ${endpoint}`, 'error');
+            req.destroy();
+            resolve([]);
+        });
+
+        req.end();
+    });
+}
+
+// REAL SALLA DATA ENDPOINT - Fetches actual store data
+app.get('/api/excel/data', async (req, res) => {
+    try {
+        const merchantId = '693104445';
+        let tokenRecord = STORED_TOKENS.get(merchantId);
+
+        // If not in memory, try to load from file
+        if (!tokenRecord) {
+            tokenRecord = await getStoredToken(merchantId);
+            if (tokenRecord) {
+                STORED_TOKENS.set(merchantId, tokenRecord);
+            }
+        }
+
+        if (!tokenRecord || !tokenRecord.access_token) {
+            addDevLog('❌ Excel request: No token found', 'error', {
+                merchant: merchantId,
+                tokens_available: STORED_TOKENS.size
+            });
+
+            return res.status(401).json({
+                error: 'No valid token found',
+                message: 'Please connect your Salla store first',
+                reconnect_url: 'https://salla-webhook-server.onrender.com/app',
+                debug_info: {
+                    merchant_id: merchantId,
+                    tokens_stored: STORED_TOKENS.size,
+                    available_merchants: Array.from(STORED_TOKENS.keys())
+                }
+            });
+        }
+
+        addDevLog('📊 Excel requesting REAL Salla data', 'info', {
+            merchant: merchantId,
+            excel_connection: true,
+            token_expires: tokenRecord.expires_at
+        });
+
+        // Fetch REAL data from Salla APIs
+        const [ordersData, productsData, customersData] = await Promise.all([
+            callSallaAPI('orders', tokenRecord.access_token),
+            callSallaAPI('products', tokenRecord.access_token),
+            callSallaAPI('customers', tokenRecord.access_token)
+        ]);
+
+        // Process real data for Excel
+        const processedOrders = ordersData.map(order => ({
+            order_id: order.id || null,
+            order_number: order.reference_id || null,
+            order_date: order.date || null,
+            order_status: order.status || null,
+            payment_method: order.payment_method || null,
+            order_total: order.amounts?.total || 0,
+            customer_name: order.customer ? `${order.customer.first_name || ''} ${order.customer.last_name || ''}`.trim() : null,
+            customer_phone_number: order.customer?.mobile || order.receiver?.phone || null,
+            shipping_city: order.receiver?.city || null,
+            shipping_address: order.receiver?.street_address || null,
+            shipping_company: order.shipments?.[0]?.company?.name || 'Not Assigned',
+            product_barcodes: order.items?.map(item => item.sku).join(', ') || null,
+            product_quantities: order.items?.map(item => item.quantity).join(', ') || null,
+            product_value: order.items?.reduce((sum, item) => sum + (item.price * item.quantity), 0) || 0
+        }));
+
+        const processedProducts = productsData.map(product => ({
+            product_id: product.id || null,
+            product_code: product.sku || null,
+            product_barcode: product.sku || null,
+            product_mpn: product.metadata?.mpn || product.sku || null,
+            product_name: product.name || null,
+            product_description: product.description || null,
+            product_image_link: product.images?.[0]?.url || null,
+            vat_status: product.metadata?.vat_included ? 'VAT Included' : 'VAT Excluded',
+            product_brand: product.brand?.name || 'No Brand',
+            product_meta_data: JSON.stringify(product.metadata || {}),
+            product_alt_text: product.images?.[0]?.alt || product.name || null,
+            product_seo_data: product.metadata?.seo_title || product.name || null,
+            price: product.price || 0,
+            price_offer: product.sale_price || product.price || 0,
+            linked_coupons: product.metadata?.coupons?.join(', ') || 'None',
+            categories: product.categories?.map(cat => cat.name).join(', ') || 'Uncategorized',
+            current_stock_level: product.quantity || 0,
+            total_sold_quantity: product.sold_quantity || 0,
+            product_type: product.type || null,
+            product_status: product.status || null,
+            product_page_link: product.url || null
+        }));
+
+        const processedCustomers = customersData.map(customer => ({
+            customer_id: customer.id || null,
+            customer_name: `${customer.first_name || ''} ${customer.last_name || ''}`.trim() || 'Unknown',
+            customer_email: customer.email || null,
+            customer_phone: customer.mobile || null,
+            customer_city: customer.city || null,
+            customer_country: customer.country || null,
+            registration_date: customer.updated_at || null
+        }));
+
+        // Format data for Excel
+        const excelData = {
+            Orders: processedOrders,
+            Products: processedProducts,
+            Customers: processedCustomers,
+            Summary: [{
+                TotalOrders: processedOrders.length,
+                TotalProducts: processedProducts.length,
+                TotalCustomers: processedCustomers.length,
+                LastUpdated: new Date().toISOString(),
+                MerchantID: merchantId,
+                DataSource: 'REAL Salla API Data',
+                Status: 'Live Data Connection Working',
+                TokenExpires: tokenRecord.expires_at
+            }]
+        };
+
+        addDevLog('✅ REAL Excel data delivered successfully', 'success', {
+            orders: processedOrders.length,
+            products: processedProducts.length,
+            customers: processedCustomers.length,
+            merchant: merchantId,
+            data_source: 'Live Salla API'
+        });
+
+        res.json(excelData);
+
+    } catch (error) {
+        addDevLog('❌ Excel REAL data request failed', 'error', {
+            error: error.message,
+            stack: error.stack
+        });
+
+        res.status(500).json({
+            error: 'Failed to fetch REAL Salla data',
+            message: error.message,
+            timestamp: new Date().toISOString(),
+            debug_info: {
+                error_type: error.name,
+                merchant_id: '693104445'
+            }
+        });
+    }
+});
+
 // Simple test endpoint for Excel
 app.get('/api/excel/test', (req, res) => {
     try {
@@ -666,7 +867,7 @@ app.get('/api/excel/data', (req, res) => {
 });
 
 // Simulate auto-connect event (for testing when store login doesn't trigger webhook)
-app.post('/api/dev/simulate-auto-connect', (req, res) => {
+app.post('/api/dev/simulate-auto-connect', async (req, res) => {
     const merchantId = '693104445';
     const simulatedTokenData = {
         access_token: 'auto_connect_token_' + Date.now(),
