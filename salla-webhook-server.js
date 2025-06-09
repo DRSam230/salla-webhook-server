@@ -364,6 +364,31 @@ app.get('/api/dev/logs', (req, res) => {
     });
 });
 
+// Manual token creation for testing (when webhook fails)
+app.post('/api/dev/create-test-token', (req, res) => {
+    const testToken = {
+        merchant_id: '693104445',
+        access_token: 'test_token_for_development_' + Date.now(),
+        expires_at: new Date(Date.now() + (14 * 24 * 60 * 60 * 1000)).toISOString(), // 14 days
+        scope: 'settings.read customers.read_write orders.read_write products.read_write',
+        created_at: new Date().toISOString()
+    };
+
+    // Store test token
+    STORED_TOKENS.set('693104445', testToken);
+
+    addDevLog('Test token created manually', 'success', {
+        merchant: '693104445',
+        expires_at: testToken.expires_at
+    });
+
+    res.json({
+        success: true,
+        message: 'Test token created successfully',
+        token: testToken
+    });
+});
+
 app.get('/api/dev/status', (req, res) => {
     res.json({
         server: 'Salla Super Easy Mode Webhook Server',
