@@ -178,22 +178,26 @@ app.get('/api/excel/data', async (req, res) => {
             registration_date: customer.updated_at || null
         }));
 
-        // Format data for Excel
-        const excelData = {
-            Orders: processedOrders,
-            Products: processedProducts,
-            Customers: processedCustomers,
-            Summary: [{
-                TotalOrders: processedOrders.length,
-                TotalProducts: processedProducts.length,
-                TotalCustomers: processedCustomers.length,
-                LastUpdated: new Date().toISOString(),
-                MerchantID: merchantId,
-                DataSource: 'REAL Salla API Data',
-                Status: 'Live Data Connection Working',
-                TokenExpires: tokenRecord.expires_at
-            }]
-        };
+        // Format data for Excel Power Query (single table format)
+        // Excel Power Query works better with a single table or simple array
+        const excelData = processedOrders.length > 0 ? processedOrders : [
+            {
+                order_id: "No orders found",
+                order_number: "Please check your Salla store",
+                order_date: new Date().toISOString(),
+                order_status: "No data",
+                payment_method: "N/A",
+                order_total: 0,
+                customer_name: "No customers",
+                customer_phone_number: "N/A",
+                shipping_city: "N/A",
+                shipping_address: "N/A",
+                shipping_company: "N/A",
+                product_barcodes: "N/A",
+                product_quantities: "N/A",
+                product_value: 0
+            }
+        ];
 
         console.log('✅ REAL Excel data delivered:', {
             orders: processedOrders.length,
@@ -213,15 +217,155 @@ app.get('/api/excel/data', async (req, res) => {
     }
 });
 
+// SEPARATE ENDPOINTS FOR EACH DATA TYPE (Excel-friendly)
+app.get('/api/excel/orders', async (req, res) => {
+    try {
+        const merchantId = '693104445';
+        const tokenRecord = STORED_TOKENS.get(merchantId);
+
+        if (!tokenRecord) {
+            return res.json([{
+                order_id: "No token",
+                order_number: "Please visit /api/init-token first",
+                order_date: new Date().toISOString(),
+                order_status: "Authentication needed",
+                payment_method: "N/A",
+                order_total: 0,
+                customer_name: "N/A",
+                customer_phone_number: "N/A",
+                shipping_city: "N/A",
+                shipping_address: "N/A",
+                shipping_company: "N/A",
+                product_barcodes: "N/A",
+                product_quantities: "N/A",
+                product_value: 0
+            }]);
+        }
+
+        const ordersData = await callSallaAPI('orders', tokenRecord.access_token);
+        const processedOrders = ordersData.map(order => ({
+            order_id: order.id || null,
+            order_number: order.reference_id || null,
+            order_date: order.date || null,
+            order_status: order.status || null,
+            payment_method: order.payment_method || null,
+            order_total: order.amounts?.total || 0,
+            customer_name: order.customer ? `${order.customer.first_name || ''} ${order.customer.last_name || ''}`.trim() : null,
+            customer_phone_number: order.customer?.mobile || order.receiver?.phone || null,
+            shipping_city: order.receiver?.city || null,
+            shipping_address: order.receiver?.street_address || null,
+            shipping_company: order.shipments?.[0]?.company?.name || 'Not Assigned',
+            product_barcodes: order.items?.map(item => item.sku).join(', ') || null,
+            product_quantities: order.items?.map(item => item.quantity).join(', ') || null,
+            product_value: order.items?.reduce((sum, item) => sum + (item.price * item.quantity), 0) || 0
+        }));
+
+        res.json(processedOrders.length > 0 ? processedOrders : [{
+            order_id: "No orders found",
+            order_number: "Your store has no orders yet",
+            order_date: new Date().toISOString(),
+            order_status: "No data",
+            payment_method: "N/A",
+            order_total: 0,
+            customer_name: "N/A",
+            customer_phone_number: "N/A",
+            shipping_city: "N/A",
+            shipping_address: "N/A",
+            shipping_company: "N/A",
+            product_barcodes: "N/A",
+            product_quantities: "N/A",
+            product_value: 0
+        }]);
+
+    } catch (error) {
+        res.json([{
+            order_id: "Error",
+            order_number: error.message,
+            order_date: new Date().toISOString(),
+            order_status: "Error",
+            payment_method: "N/A",
+            order_total: 0,
+            customer_name: "N/A",
+            customer_phone_number: "N/A",
+            shipping_city: "N/A",
+            shipping_address: "N/A",
+            shipping_company: "N/A",
+            product_barcodes: "N/A",
+            product_quantities: "N/A",
+            product_value: 0
+        }]);
+    }
+});
+
+app.get('/api/excel/products', async (req, res) => {
+    try {
+        const merchantId = '693104445';
+        const tokenRecord = STORED_TOKENS.get(merchantId);
+
+        if (!tokenRecord) {
+            return res.json([{
+                product_id: "No token",
+                product_code: "Please visit /api/init-token first",
+                product_name: "Authentication needed",
+                price: 0,
+                current_stock_level: 0
+            }]);
+        }
+
+        const productsData = await callSallaAPI('products', tokenRecord.access_token);
+        const processedProducts = productsData.map(product => ({
+            product_id: product.id || null,
+            product_code: product.sku || null,
+            product_barcode: product.sku || null,
+            product_mpn: product.metadata?.mpn || product.sku || null,
+            product_name: product.name || null,
+            product_description: product.description || null,
+            product_image_link: product.images?.[0]?.url || null,
+            vat_status: product.metadata?.vat_included ? 'VAT Included' : 'VAT Excluded',
+            product_brand: product.brand?.name || 'No Brand',
+            product_meta_data: JSON.stringify(product.metadata || {}),
+            product_alt_text: product.images?.[0]?.alt || product.name || null,
+            product_seo_data: product.metadata?.seo_title || product.name || null,
+            price: product.price || 0,
+            price_offer: product.sale_price || product.price || 0,
+            linked_coupons: product.metadata?.coupons?.join(', ') || 'None',
+            categories: product.categories?.map(cat => cat.name).join(', ') || 'Uncategorized',
+            current_stock_level: product.quantity || 0,
+            total_sold_quantity: product.sold_quantity || 0,
+            product_type: product.type || null,
+            product_status: product.status || null,
+            product_page_link: product.url || null
+        }));
+
+        res.json(processedProducts.length > 0 ? processedProducts : [{
+            product_id: "No products found",
+            product_code: "N/A",
+            product_name: "Your store has no products yet",
+            price: 0,
+            current_stock_level: 0
+        }]);
+
+    } catch (error) {
+        res.json([{
+            product_id: "Error",
+            product_code: "N/A",
+            product_name: error.message,
+            price: 0,
+            current_stock_level: 0
+        }]);
+    }
+});
+
 // Initialize token endpoint
 app.get('/api/init-token', (req, res) => {
     STORED_TOKENS.set('693104445', YOUR_TOKEN);
-    
+
     res.json({
         success: true,
         message: 'Token initialized successfully',
         excel_ready: true,
-        excel_url: 'https://salla-webhook-server.onrender.com/api/excel/data',
+        excel_orders_url: 'https://salla-webhook-server.onrender.com/api/excel/orders',
+        excel_products_url: 'https://salla-webhook-server.onrender.com/api/excel/products',
         merchant_id: '693104445',
         expires_at: YOUR_TOKEN.expires_at
     });
