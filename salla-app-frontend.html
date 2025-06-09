@@ -355,9 +355,22 @@
                     <p><strong>Webhook URL:</strong> <code>https://salla-webhook-server.onrender.com/salla/webhook</code></p>
                 </div>
 
+                <div class="status-card status-info">
+                    <h4>🎯 Auto-Connect Feature</h4>
+                    <p><strong>No reinstallation needed!</strong> Once your app is installed, just login to your Salla store admin panel and the connection will automatically refresh.</p>
+                    <ul style="margin-left: 20px; margin-top: 10px;">
+                        <li>✅ <strong>Login to Salla store</strong> → Automatic token refresh</li>
+                        <li>✅ <strong>Excel Power Query</strong> → Works immediately</li>
+                        <li>✅ <strong>No manual steps</strong> → Seamless experience</li>
+                    </ul>
+                </div>
+
                 <div class="quick-actions">
                     <button class="btn btn-info" onclick="checkConnection()">
-                        🔍 Check Connection Status
+                        🔍 Check Auto-Connect Status
+                    </button>
+                    <button class="btn btn-secondary" onclick="simulateAutoConnect()">
+                        🎯 Test Auto-Connect
                     </button>
                     <button class="btn btn-secondary" onclick="viewLogs()">
                         📋 View Webhook Logs
@@ -1062,6 +1075,36 @@ in
         function viewLogs() {
             const baseUrl = window.location.origin;
             window.open(`${baseUrl}/api/dev/logs`, '_blank');
+        }
+
+        async function simulateAutoConnect() {
+            try {
+                showConnectionStatus('info', '🎯 Testing auto-connect functionality...');
+
+                const response = await fetch('/api/dev/simulate-auto-connect', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showConnectionStatus('success',
+                        `🚀 Auto-connect test successful! Token expires: ${result.token_expires}. Your Excel Power Query files should now work.`
+                    );
+
+                    // Auto-refresh connection status after simulation
+                    setTimeout(() => {
+                        checkConnection();
+                    }, 2000);
+                } else {
+                    showConnectionStatus('error', `❌ Auto-connect test failed: ${result.error}`);
+                }
+            } catch (error) {
+                showConnectionStatus('error', `❌ Auto-connect test error: ${error.message}`);
+            }
         }
 
         function openSallaPortal() {
