@@ -231,25 +231,31 @@ async function handleStoreAuthorize(merchantId, tokenData, createdAt) {
         // Store the access token (this is the auto-connect magic!)
         const tokenRecord = await storeToken(merchantId, tokenData);
 
+        // FORCE UPDATE: Always update token even if one exists
+        STORED_TOKENS.set(merchantId.toString(), tokenRecord);
+
         addDevLog('🚀 AUTO-CONNECT SUCCESS: Store authorization completed', 'success', {
             merchant: merchantId,
             token_length: tokenData.access_token.length,
             expires_in_days: Math.round((tokenData.expires * 1000 - Date.now()) / (1000 * 60 * 60 * 24)),
             connection_method: 'Auto-connect on store login',
-            no_reinstall_required: true
+            no_reinstall_required: true,
+            excel_endpoint_ready: true
         });
 
         // Auto-connect features:
         // ✅ Token automatically refreshed when merchant logs in
-        // ✅ Excel Power Query files will work immediately
+        // ✅ Excel can connect directly via API endpoint
         // ✅ No need to reinstall app from store
+        // ✅ No file downloads needed
         // ✅ Seamless user experience
 
-        addDevLog('📊 Excel Power Query Ready', 'success', {
+        addDevLog('📊 Excel Direct Connection Ready', 'success', {
             merchant: merchantId,
-            message: 'All Power Query files can now access fresh data',
-            webhook_server: 'https://salla-webhook-server.onrender.com',
-            frontend_url: 'https://salla-webhook-server.onrender.com/app'
+            message: 'Excel can now connect directly to store data',
+            excel_url: 'https://salla-webhook-server.onrender.com/api/excel/data',
+            frontend_url: 'https://salla-webhook-server.onrender.com/app',
+            connection_method: 'Direct API endpoint'
         });
 
         return tokenRecord;
@@ -399,6 +405,65 @@ app.post('/api/dev/create-test-token', (req, res) => {
     });
 });
 
+// DIRECT EXCEL CONNECTION ENDPOINT - No file downloads needed!
+app.get('/api/excel/data', async (req, res) => {
+    try {
+        const merchantId = '693104445';
+        const tokenRecord = STORED_TOKENS.get(merchantId);
+
+        if (!tokenRecord || !tokenRecord.access_token) {
+            return res.status(401).json({
+                error: 'No valid token found',
+                message: 'Please connect your Salla store first',
+                reconnect_url: '/api/dev/simulate-auto-connect'
+            });
+        }
+
+        addDevLog('📊 Excel requesting data', 'info', {
+            merchant: merchantId,
+            excel_connection: true
+        });
+
+        // Fetch data from Salla APIs
+        const [ordersData, productsData, customersData] = await Promise.all([
+            fetchSallaData('orders', tokenRecord.access_token, 10),
+            fetchSallaData('products', tokenRecord.access_token, 15),
+            fetchSallaData('customers', tokenRecord.access_token, 8)
+        ]);
+
+        // Process and format data for Excel
+        const excelData = {
+            Orders: processOrdersForExcel(ordersData),
+            Products: processProductsForExcel(productsData),
+            Customers: processCustomersForExcel(customersData),
+            Summary: {
+                TotalOrders: ordersData.length,
+                TotalProducts: productsData.length,
+                TotalCustomers: customersData.length,
+                LastUpdated: new Date().toISOString(),
+                MerchantID: merchantId,
+                DataSource: 'Salla API Direct Connection'
+            }
+        };
+
+        addDevLog('✅ Excel data delivered successfully', 'success', {
+            orders: ordersData.length,
+            products: productsData.length,
+            customers: customersData.length
+        });
+
+        res.json(excelData);
+
+    } catch (error) {
+        addDevLog('❌ Excel data request failed', 'error', error.message);
+        res.status(500).json({
+            error: 'Failed to fetch Salla data',
+            message: error.message,
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
 // Simulate auto-connect event (for testing when store login doesn't trigger webhook)
 app.post('/api/dev/simulate-auto-connect', (req, res) => {
     const merchantId = '693104445';
@@ -415,18 +480,19 @@ app.post('/api/dev/simulate-auto-connect', (req, res) => {
         .then(() => {
             addDevLog('🎯 Auto-connect simulation completed', 'success', {
                 merchant: merchantId,
-                message: 'Simulated store login auto-connect'
+                message: 'Simulated store login auto-connect - Excel ready'
             });
 
             res.json({
                 success: true,
-                message: 'Auto-connect simulation successful',
+                message: 'Store reconnected successfully',
                 merchant_id: merchantId,
                 token_expires: new Date(simulatedTokenData.expires * 1000).toISOString(),
+                excel_url: 'https://salla-webhook-server.onrender.com/api/excel/data',
                 next_steps: [
-                    'Your Excel Power Query files should now work',
-                    'Test by importing any .pq file into Excel',
-                    'Check /api/dev/tokens to see the stored token'
+                    'Excel can now connect directly to your store',
+                    'Use URL: https://salla-webhook-server.onrender.com/api/excel/data',
+                    'No file downloads needed!'
                 ]
             });
         })
@@ -702,6 +768,99 @@ accessFiles.forEach(filename => {
         }
     });
 });
+
+// Helper functions for Excel data processing
+async function fetchSallaData(endpoint, accessToken, maxPages = 5) {
+    try {
+        let allData = [];
+
+        for (let page = 1; page <= maxPages; page++) {
+            const response = await fetch(`https://api.salla.dev/admin/v2/${endpoint}?page=${page}&per_page=50`, {
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Accept': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                if (page === 1) throw new Error(`Salla API error: ${response.status}`);
+                break; // Stop if we can't get more pages
+            }
+
+            const data = await response.json();
+            if (data.data && data.data.length > 0) {
+                allData = allData.concat(data.data);
+            }
+
+            // Stop if no more pages
+            if (!data.pagination || page >= data.pagination.totalPages) {
+                break;
+            }
+        }
+
+        return allData;
+    } catch (error) {
+        addDevLog(`❌ Failed to fetch ${endpoint}`, 'error', error.message);
+        return [];
+    }
+}
+
+function processOrdersForExcel(ordersData) {
+    return ordersData.map(order => ({
+        order_id: order.id || null,
+        order_number: order.reference_id || null,
+        order_date: order.date || null,
+        order_status: order.status || null,
+        payment_method: order.payment_method || null,
+        order_total: order.amounts?.total || 0,
+        customer_name: order.customer ? `${order.customer.first_name || ''} ${order.customer.last_name || ''}`.trim() : null,
+        customer_phone_number: order.customer?.mobile || order.receiver?.phone || null,
+        shipping_city: order.receiver?.city || null,
+        shipping_address: order.receiver?.street_address || null,
+        shipping_company: order.shipments?.[0]?.company?.name || 'Not Assigned',
+        product_barcodes: order.items?.map(item => item.sku).join(', ') || null,
+        product_quantities: order.items?.map(item => item.quantity).join(', ') || null,
+        product_value: order.items?.reduce((sum, item) => sum + (item.price * item.quantity), 0) || 0
+    }));
+}
+
+function processProductsForExcel(productsData) {
+    return productsData.map(product => ({
+        product_id: product.id || null,
+        product_code: product.sku || null,
+        product_barcode: product.sku || null,
+        product_mpn: product.metadata?.mpn || product.sku || null,
+        product_name: product.name || null,
+        product_description: product.description || null,
+        product_image_link: product.images?.[0]?.url || null,
+        vat_status: product.metadata?.vat_included ? 'VAT Included' : 'VAT Excluded',
+        product_brand: product.brand?.name || 'No Brand',
+        product_meta_data: JSON.stringify(product.metadata || {}),
+        product_alt_text: product.images?.[0]?.alt || product.name || null,
+        product_seo_data: product.metadata?.seo_title || product.name || null,
+        price: product.price || 0,
+        price_offer: product.sale_price || product.price || 0,
+        linked_coupons: product.metadata?.coupons?.join(', ') || 'None',
+        categories: product.categories?.map(cat => cat.name).join(', ') || 'Uncategorized',
+        current_stock_level: product.quantity || 0,
+        total_sold_quantity: product.sold_quantity || 0,
+        product_type: product.type || null,
+        product_status: product.status || null,
+        product_page_link: product.url || null
+    }));
+}
+
+function processCustomersForExcel(customersData) {
+    return customersData.map(customer => ({
+        customer_id: customer.id || null,
+        customer_name: `${customer.first_name || ''} ${customer.last_name || ''}`.trim() || 'Unknown',
+        customer_email: customer.email || null,
+        customer_phone: customer.mobile || null,
+        customer_city: customer.city || null,
+        customer_country: customer.country || null,
+        registration_date: customer.updated_at || null
+    }));
+}
 
 // Serve static files (for testing)
 app.use(express.static('.'));

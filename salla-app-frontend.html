@@ -355,25 +355,36 @@
                     <p><strong>Webhook URL:</strong> <code>https://salla-webhook-server.onrender.com/salla/webhook</code></p>
                 </div>
 
-                <div class="status-card status-info">
-                    <h4>🎯 Auto-Connect Feature</h4>
-                    <p><strong>No reinstallation needed!</strong> Once your app is installed, just login to your Salla store admin panel and the connection will automatically refresh.</p>
-                    <ul style="margin-left: 20px; margin-top: 10px;">
-                        <li>✅ <strong>Login to Salla store</strong> → Automatic token refresh</li>
-                        <li>✅ <strong>Excel Power Query</strong> → Works immediately</li>
-                        <li>✅ <strong>No manual steps</strong> → Seamless experience</li>
-                    </ul>
+                <div class="status-card status-success">
+                    <h4>🎯 DIRECT EXCEL CONNECTION</h4>
+                    <p><strong>Connect Excel directly to your Salla store!</strong> No file downloads needed.</p>
+
+                    <div class="excel-connection-info">
+                        <h5>📊 Excel Power Query URL:</h5>
+                        <div class="url-box">
+                            <code id="excelUrl">https://salla-webhook-server.onrender.com/api/excel/data</code>
+                            <button class="btn-copy" onclick="copyExcelUrl()">📋 Copy</button>
+                        </div>
+
+                        <h5>🔧 How to Connect Excel:</h5>
+                        <ol style="margin-left: 20px; text-align: left;">
+                            <li><strong>Open Excel 365</strong></li>
+                            <li><strong>Data tab</strong> → Get Data → From Web</li>
+                            <li><strong>Paste URL:</strong> <code>https://salla-webhook-server.onrender.com/api/excel/data</code></li>
+                            <li><strong>Click OK</strong> → Excel loads your Salla data automatically</li>
+                        </ol>
+                    </div>
                 </div>
 
                 <div class="quick-actions">
+                    <button class="btn btn-primary" onclick="testExcelConnection()">
+                        📊 Test Excel Connection
+                    </button>
                     <button class="btn btn-info" onclick="checkConnection()">
-                        🔍 Check Auto-Connect Status
+                        🔍 Check Store Connection
                     </button>
-                    <button class="btn btn-secondary" onclick="simulateAutoConnect()">
-                        🎯 Test Auto-Connect
-                    </button>
-                    <button class="btn btn-secondary" onclick="viewLogs()">
-                        📋 View Webhook Logs
+                    <button class="btn btn-secondary" onclick="forceReconnect()">
+                        🔄 Force Reconnect (No Reinstall)
                     </button>
                 </div>
 
@@ -1077,9 +1088,37 @@ in
             window.open(`${baseUrl}/api/dev/logs`, '_blank');
         }
 
-        async function simulateAutoConnect() {
+        function copyExcelUrl() {
+            const url = document.getElementById('excelUrl').textContent;
+            navigator.clipboard.writeText(url).then(() => {
+                showConnectionStatus('success', '📋 Excel URL copied to clipboard!');
+            }).catch(() => {
+                showConnectionStatus('error', '❌ Failed to copy URL');
+            });
+        }
+
+        async function testExcelConnection() {
             try {
-                showConnectionStatus('info', '🎯 Testing auto-connect functionality...');
+                showConnectionStatus('info', '📊 Testing Excel connection endpoint...');
+
+                const response = await fetch('/api/excel/data');
+                const result = await response.json();
+
+                if (response.ok && result.Orders) {
+                    showConnectionStatus('success',
+                        `✅ Excel connection working! Found ${result.Orders.length} orders, ${result.Products.length} products, ${result.Customers.length} customers.`
+                    );
+                } else {
+                    showConnectionStatus('error', '❌ Excel connection failed. Please check your store connection.');
+                }
+            } catch (error) {
+                showConnectionStatus('error', `❌ Excel connection test error: ${error.message}`);
+            }
+        }
+
+        async function forceReconnect() {
+            try {
+                showConnectionStatus('info', '🔄 Force reconnecting to store (no app reinstall needed)...');
 
                 const response = await fetch('/api/dev/simulate-auto-connect', {
                     method: 'POST',
@@ -1092,18 +1131,18 @@ in
 
                 if (result.success) {
                     showConnectionStatus('success',
-                        `🚀 Auto-connect test successful! Token expires: ${result.token_expires}. Your Excel Power Query files should now work.`
+                        `🚀 Store reconnected successfully! Token expires: ${result.token_expires}. Excel connection is now ready.`
                     );
 
-                    // Auto-refresh connection status after simulation
+                    // Auto-refresh connection status after reconnection
                     setTimeout(() => {
                         checkConnection();
                     }, 2000);
                 } else {
-                    showConnectionStatus('error', `❌ Auto-connect test failed: ${result.error}`);
+                    showConnectionStatus('error', `❌ Force reconnect failed: ${result.error}`);
                 }
             } catch (error) {
-                showConnectionStatus('error', `❌ Auto-connect test error: ${error.message}`);
+                showConnectionStatus('error', `❌ Force reconnect error: ${error.message}`);
             }
         }
 
