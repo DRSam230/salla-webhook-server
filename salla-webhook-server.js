@@ -380,6 +380,86 @@ app.get('/api/dev/logs', (req, res) => {
     });
 });
 
+// Simple test endpoint for Excel
+app.get('/api/excel/test', (req, res) => {
+    try {
+        const testData = {
+            Orders: [
+                {
+                    order_id: 1001,
+                    order_number: 'ORD-2025-001',
+                    order_date: '2025-06-09T10:00:00Z',
+                    order_status: 'completed',
+                    payment_method: 'credit_card',
+                    order_total: 150.00,
+                    customer_name: 'Ahmed Ali',
+                    customer_phone_number: '+966501234567',
+                    shipping_city: 'Riyadh',
+                    shipping_address: '123 King Fahd Road',
+                    shipping_company: 'SMSA Express',
+                    product_barcodes: 'SKU001, SKU002',
+                    product_quantities: '2, 1',
+                    product_value: 150.00
+                }
+            ],
+            Products: [
+                {
+                    product_id: 101,
+                    product_code: 'SKU001',
+                    product_barcode: 'SKU001',
+                    product_mpn: 'MPN001',
+                    product_name: 'Premium T-Shirt',
+                    product_description: 'High quality cotton t-shirt',
+                    product_image_link: 'https://example.com/tshirt.jpg',
+                    vat_status: 'VAT Included',
+                    product_brand: 'Fashion Brand',
+                    product_meta_data: '{"color": "blue", "size": "M"}',
+                    product_alt_text: 'Blue premium t-shirt',
+                    product_seo_data: 'Premium T-Shirt - Blue Cotton',
+                    price: 75.00,
+                    price_offer: 60.00,
+                    linked_coupons: 'SAVE20',
+                    categories: 'Clothing, T-Shirts',
+                    current_stock_level: 25,
+                    total_sold_quantity: 150,
+                    product_type: 'simple',
+                    product_status: 'active',
+                    product_page_link: 'https://store.com/premium-tshirt'
+                }
+            ],
+            Customers: [
+                {
+                    customer_id: 201,
+                    customer_name: 'Ahmed Ali',
+                    customer_email: 'ahmed.ali@email.com',
+                    customer_phone: '+966501234567',
+                    customer_city: 'Riyadh',
+                    customer_country: 'Saudi Arabia',
+                    registration_date: '2025-01-15T08:00:00Z'
+                }
+            ],
+            Summary: [
+                {
+                    TotalOrders: 1,
+                    TotalProducts: 1,
+                    TotalCustomers: 1,
+                    LastUpdated: new Date().toISOString(),
+                    MerchantID: '693104445',
+                    DataSource: 'Salla API Test Connection',
+                    Status: 'Test Data - Connection Working'
+                }
+            ]
+        };
+
+        res.json(testData);
+    } catch (error) {
+        res.status(500).json({
+            error: 'Test endpoint failed',
+            message: error.message
+        });
+    }
+});
+
 // Manual token creation for testing (when webhook fails)
 app.post('/api/dev/create-test-token', (req, res) => {
     const testToken = {
@@ -405,8 +485,8 @@ app.post('/api/dev/create-test-token', (req, res) => {
     });
 });
 
-// DIRECT EXCEL CONNECTION ENDPOINT - No file downloads needed!
-app.get('/api/excel/data', async (req, res) => {
+// SIMPLE EXCEL CONNECTION ENDPOINT - Working version
+app.get('/api/excel/data', (req, res) => {
     try {
         const merchantId = '693104445';
         const tokenRecord = STORED_TOKENS.get(merchantId);
@@ -432,7 +512,7 @@ app.get('/api/excel/data', async (req, res) => {
         addDevLog('📊 Excel requesting data', 'info', {
             merchant: merchantId,
             excel_connection: true,
-            token_expires: tokenRecord.expires_at
+            token_expires: tokenRecord ? tokenRecord.expires_at : 'No token'
         });
 
         // Create sample data for Excel (since we can't use fetch in Node.js without import)
