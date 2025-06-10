@@ -7,7 +7,7 @@
     "build": "webpack --mode production",
     "build:dev": "webpack --mode development",
     "dev-server": "webpack serve --mode development",
-    "start": "node simple-server.js",
+    "start": "node ultra-simple-server.js",
     "test-server": "node server.js",
     "webhook-server": "node salla-webhook-server.js",
     "webhook-dev": "nodemon salla-webhook-server.js",
